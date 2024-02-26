@@ -1,7 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
 This is a fork of [libepoxy](https://github.com/anholt/libepoxy) with the following changes:
- - CMake support (missing tests for now)
+ - Removed Meson in favor of CMake (missing tests & docs for now)
 
 Epoxy is a library for handling OpenGL function pointer management for
 you.
@@ -31,21 +31,21 @@ Building
 --------
 
 ```sh
-mkdir _build && cd _build
-meson
-ninja
-sudo ninja install
+mkdir build && cd build
+cmake ..
+cmake --build .
+cmake --install .
 ```
 
 Dependencies for Debian:
 
-  * meson
+  * cmake
   * libegl1-mesa-dev
 
 Dependencies for macOS (using MacPorts): 
 
   * pkgconfig
-  * meson
+  * cmake
 
 The test suite has additional dependencies depending on the platform.
 (X11, EGL, a running X Server).
