@@ -2,7 +2,7 @@
 
 This is a fork of [libepoxy](https://github.com/anholt/libepoxy) with the following changes:
  - Removed Meson in favor of CMake (missing tests & docs for now)
- - Added emscripten support
+ - Added emscripten support (credit to [cbeck88](https://github.com/cbeck88/empoxy))
 
 Epoxy is a library for handling OpenGL function pointer management for
 you.
