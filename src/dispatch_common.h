@@ -28,7 +28,7 @@
 #define PLATFORM_HAS_GLX ENABLE_GLX
 #define PLATFORM_HAS_WGL 1
 #elif defined(__APPLE__)
-#define PLATFORM_HAS_EGL 0 
+#define PLATFORM_HAS_EGL 0
 #define PLATFORM_HAS_GLX ENABLE_GLX
 #define PLATFORM_HAS_WGL 0
 #elif defined(ANDROID)
@@ -204,3 +204,7 @@ extern BOOL UNWRAPPED_PROTO(wglMakeContextCurrentARB_unwrapped)(HDC hDrawDC, HDC
 extern BOOL UNWRAPPED_PROTO(wglMakeContextCurrentEXT_unwrapped)(HDC hDrawDC, HDC hReadDC, HGLRC hglrc);
 extern BOOL UNWRAPPED_PROTO(wglMakeAssociatedContextCurrentAMD_unwrapped)(HGLRC hglrc);
 #endif /* _WIN32_ */
+
+#if EMSCRIPTEN
+#include "dispatch_emscripten.h"
+#endif

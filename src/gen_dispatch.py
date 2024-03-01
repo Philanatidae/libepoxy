@@ -150,8 +150,9 @@ class GLFunction(object):
         ext.alias_func = self
 
 class Generator(object):
-    def __init__(self, target):
+    def __init__(self, target, emscripten):
         self.target = target
+        self.emscripten = emscripten
         self.enums = {}
         self.functions = {}
         self.sorted_functions = []
@@ -337,21 +338,30 @@ class Generator(object):
                 human_name = 'Desktop OpenGL {0}'.format(feature.get('number'))
                 condition = 'epoxy_is_desktop_gl()'
 
-                loader = 'epoxy_get_core_proc_address({0}, {1})'.format('{0}', version)
+                if self.emscripten:
+                    loader = 'emscripten_GetProcAddress({0})'
+                else:
+                    loader = 'epoxy_get_core_proc_address({0}, {1})'.format('{0}', version)
                 if version >= 11:
                     condition += ' && epoxy_conservative_gl_version() >= {0}'.format(version)
             elif api == 'gles2':
                 human_name = 'OpenGL ES {0}'.format(feature.get('number'))
                 condition = '!epoxy_is_desktop_gl() && epoxy_gl_version() >= {0}'.format(version)
 
-                if version <= 20:
-                    loader = 'epoxy_gles2_dlsym({0})'
+                if self.emscripten:
+                    loader = 'emscripten_GetProcAddress({0})'
                 else:
-                    loader = 'epoxy_gles3_dlsym({0})'
+                    if version <= 20:
+                        loader = 'epoxy_gles2_dlsym({0})'
+                    else:
+                        loader = 'epoxy_gles3_dlsym({0})'
             elif api == 'gles1':
                 human_name = 'OpenGL ES 1.0'
                 condition = '!epoxy_is_desktop_gl() && epoxy_gl_version() >= 10 && epoxy_gl_version() < 20'
-                loader = 'epoxy_gles1_dlsym({0})'
+                if self.emscripten:
+                    loader = 'emscripten_GetProcAddress({0})'
+                else:
+                    loader = 'epoxy_gles1_dlsym({0})'
             elif api == 'glx':
                 human_name = 'GLX {0}'.format(version)
                 # We could just always use GPA for loading everything
@@ -369,9 +379,12 @@ class Generator(object):
                     condition = 'epoxy_conservative_egl_version() >= {0}'.format(version)
                 else:
                     condition = 'true'
-                # All EGL core entrypoints must be dlsym()ed out --
-                # eglGetProcAdddress() will return NULL.
-                loader = 'epoxy_egl_dlsym({0})'
+                if self.emscripten:
+                    loader = 'emscripten_GetProcAddress({0})'
+                else:
+                    # All EGL core entrypoints must be dlsym()ed out --
+                    # eglGetProcAdddress() will return NULL.
+                    loader = 'epoxy_egl_dlsym({0})'
             elif api == 'wgl':
                 human_name = 'WGL {0}'.format(version)
                 condition = 'true'
@@ -398,7 +411,10 @@ class Generator(object):
                 self.process_require_statements(extension, condition, loader, extname)
             if 'egl' in apis:
                 condition = 'epoxy_conservative_has_egl_extension(provider_name)'
-                loader = 'eglGetProcAddress({0})'
+                if self.emscripten:
+                    loader = 'emscripten_GetProcAddress({0})'
+                else:
+                    loader = 'eglGetProcAddress({0})'
                 self.process_require_statements(extension, condition, loader, extname)
             if 'wgl' in apis:
                 condition = 'epoxy_conservative_has_wgl_extension(provider_name)'
@@ -406,7 +422,10 @@ class Generator(object):
                 self.process_require_statements(extension, condition, loader, extname)
             if {'gl', 'gles1', 'gles2'}.intersection(apis):
                 condition = 'epoxy_conservative_has_gl_extension(provider_name)'
-                loader = 'epoxy_get_proc_address({0})'
+                if self.emscripten:
+                    loader = 'emscripten_GetProcAddress({0})'
+                else:
+                    loader = 'epoxy_get_proc_address({0})'
                 self.process_require_statements(extension, condition, loader, extname)
 
     def fixup_bootstrap_function(self, name, loader):
@@ -788,6 +807,12 @@ class Generator(object):
         self.outln('#define EPOXY_NOINLINE __declspec(noinline)')
         self.outln('#endif')
 
+        self.outln('')
+        self.outln('// emscripten_GetProcAddress is defined in emscripten\'s gl.c backend')
+        self.outln('// It is used to acquire all function pointers.')
+        self.outln('extern void* emscripten_GetProcAddress(const char *x);')
+        self.outln('')
+
         self.outln('struct dispatch_table {')
         for func in self.sorted_functions:
             self.outln('    {0} epoxy_{1};'.format(func.ptr_type, func.wrapped_name))
@@ -873,6 +898,8 @@ argparser.add_argument('--source', dest='source', action='store_true', required=
 argparser.add_argument('--no-source', dest='source', action='store_false', required=False, help='Do not generate the source file')
 argparser.add_argument('--header', dest='header', action='store_true', required=False, help='Generate the header file')
 argparser.add_argument('--no-header', dest='header', action='store_false', required=False, help='Do not generate the header file')
+argparser.add_argument('--emscripten', dest='emscripten', action='store_true', required=False, help='Generate for emscripten')
+argparser.add_argument('--no-emscripten', dest='emscripten', action='store_false', required=False, help='Do not generate for emscripten')
 args = argparser.parse_args()
 
 if args.outputdir:
@@ -897,9 +924,13 @@ if not build_source and not build_header:
     build_source = True
     build_header = True
 
+build_emscripten = args.emscripten
+if not build_emscripten:
+    build_emscripten = False
+
 for f in args.files:
     name = os.path.basename(f).split('.xml')[0]
-    generator = Generator(name)
+    generator = Generator(name, build_emscripten)
     generator.parse(f)
 
     generator.drop_weird_glx_functions()
@@ -911,10 +942,16 @@ for f in args.files:
 
     generator.sort_functions()
     generator.resolve_aliases()
-    generator.fixup_bootstrap_function('glGetString',
-                                       'epoxy_get_bootstrap_proc_address({0})')
-    generator.fixup_bootstrap_function('glGetIntegerv',
-                                       'epoxy_get_bootstrap_proc_address({0})')
+    if build_emscripten:
+        generator.fixup_bootstrap_function('glGetString',
+                                           'epoxy_em_bootstrap({0})')
+        generator.fixup_bootstrap_function('glGetIntegerv',
+                                           'epoxy_em_bootstrap({0})')
+    else:
+        generator.fixup_bootstrap_function('glGetString',
+                                           'epoxy_get_bootstrap_proc_address({0})')
+        generator.fixup_bootstrap_function('glGetIntegerv',
+                                           'epoxy_get_bootstrap_proc_address({0})')
 
     # While this is technically exposed as a GLX extension, it's
     # required to be present as a public symbol by the Linux OpenGL

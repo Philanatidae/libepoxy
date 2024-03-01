@@ -27,7 +27,7 @@ option(EPOXY_ENABLE_GLX "Enable GLX support" OFF)
 option(EPOXY_ENABLE_EGL "Enable EGL support" OFF)
 option(EPOXY_ENABLE_X11 "Enable X11 support" OFF)
 
-if(NOT WIN32 AND NOT APPLE AND NOT ANDROID)
+if(NOT WIN32 AND NOT APPLE AND NOT ANDROID AND NOT EMSCRIPTEN)
     set(BUILD_GLX ${EPOXY_ENABLE_GLX})
 else()
     set(BUILD_GLX FALSE)
@@ -133,6 +133,11 @@ if(NOT EXISTS ${LIBEPOXY_BIN_DIR}/src)
     file(MAKE_DIRECTORY ${LIBEPOXY_BIN_DIR}/src)
 endif()
 
+if(EMSCRIPTEN)
+    set(LIBEPOXY_EMSCRIPTEN_FLAG --emscripten)
+else()
+    set(LIBEPOXY_EMSCRIPTEN_FLAG --no-emscripten)
+endif()
 add_custom_command(
     OUTPUT ${LIBEPOXY_BIN_DIR}/include/epoxy/gl_generated.h
     MAIN_DEPENDENCY ${LIBEPOXY_SRC_DIR}/registry/gl.xml
@@ -140,6 +145,7 @@ add_custom_command(
         ${LIBEPOXY_SRC_DIR}/src/gen_dispatch.py
         --header
         --no-source
+        ${LIBEPOXY_EMSCRIPTEN_FLAG}
         --outputdir=${LIBEPOXY_BIN_DIR}/include/epoxy
         ${LIBEPOXY_SRC_DIR}/registry/gl.xml
     COMMENT "Generating `gl_generated.h`"
@@ -151,6 +157,7 @@ add_custom_command(
         ${LIBEPOXY_SRC_DIR}/src/gen_dispatch.py
         --source
         --no-header
+        ${LIBEPOXY_EMSCRIPTEN_FLAG}
         --outputdir=${LIBEPOXY_BIN_DIR}/src
         ${LIBEPOXY_SRC_DIR}/registry/gl.xml
     COMMENT "Generating `gl_generated_dispatch.c`"
@@ -170,6 +177,12 @@ target_include_directories(epoxy
         ${LIBEPOXY_SRC_DIR}/include/epoxy
         ${LIBEPOXY_BIN_DIR}/include/epoxy
         ${LIBEPOXY_SRC_DIR}/src)
+if(EMSCRIPTEN)
+target_sources(epoxy
+    PUBLIC
+        ${LIBEPOXY_SRC_DIR}/src/dispatch_emscripten.c
+)
+endif()
 target_sources(epoxy
     PUBLIC
         ${LIBEPOXY_BIN_DIR}/include/epoxy/config.h
