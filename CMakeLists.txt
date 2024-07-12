@@ -87,15 +87,15 @@ if(WIN32)
 endif()
 
 find_library(DL_LIB dl)
-find_package(OpenGL)
-find_package(EGL)
-if(EGL_FOUND)
-    add_library(egl_headers INTERFACE)
-    target_include_directories(egl_headers INTERFACE ${EGL_INCLUDE_DIRS})
-    target_compile_definitions(egl_headers INTERFACE ${EGL_DEFINITIONS})
-endif()
+find_package(OpenGL REQUIRED)
+# @todo See if we can remove below.
+#if(EGL_FOUND)
+#    add_library(egl_headers INTERFACE)
+#    target_include_directories(egl_headers INTERFACE ${EGL_INCLUDE_DIRS})
+#    target_compile_definitions(egl_headers INTERFACE ${EGL_DEFINITIONS})
+#endif()
 
-find_package(X11)
+find_package(X11 CONFIG)
 if(X11_FOUND)
     add_library(x11_headers INTERFACE)
     target_include_directories(x11_headers INTERFACE ${X11_INCLUDE_DIRS})
@@ -105,24 +105,25 @@ endif()
 # GLES v2 and v1 may have pkg-config files, courtesy of downstream
 # packagers; let's check those first, and fall back to find_library()
 # if we fail
-find_package(glesv2)
-if(NOT glesv2_FOUND)
-    find_library(glesv2_LIB libGLESv2)
-endif()
-
-find_package(glesv1_cm)
-if(NOT glesv1_cm_FOUND)
-    find_library(glesv1_cm_LIB libGLESv1_CM)
-endif()
+# @todo See if we can remove below.
+#find_package(glesv2 CONFIG)
+#if(NOT glesv2_FOUND)
+#    find_library(glesv2_LIB libGLESv2)
+#endif()
+#
+#find_package(glesv1_cm CONFIG)
+#if(NOT glesv1_cm_FOUND)
+#    find_library(glesv1_cm_LIB libGLESv1_CM)
+#endif()
 
 # On windows, the DLL has to have all of its functions
 # resolved at link time, so we have to link directly against
 # opengl32.  But that's the only GL provider, anyway.
-if(WIN32)
-    find_library(opengl32_lib opengl32 REQUIRED)
-
-    find_library(gdi32_dep gdi32 REQUIRED)
-endif()
+#if(WIN32)
+#    find_library(${OPENGL_LIBRARIES} REQUIRED)
+#
+#    find_library(gdi32_dep gdi32 REQUIRED)
+#endif()
 
 find_package(Python3 REQUIRED)
 
@@ -297,12 +298,13 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if(WIN32)
-    target_link_libraries(epoxy PRIVATE ${opengl32_LIB} ${gdi32_LIB})
+    target_link_libraries(epoxy PRIVATE OpenGL::GL)
 endif()
 if(BUILD_X11)
     target_link_libraries(epoxy PRIVATE ${x11_headers})
 endif()
-if(BUILD_EGL)
-    target_link_libraries(epoxy PRIVATE ${egl_headers})
-endif()
+# @todo See if we can remove below.
+#if(BUILD_EGL)
+#    target_link_libraries(epoxy PRIVATE ${egl_headers})
+#endif()
 
