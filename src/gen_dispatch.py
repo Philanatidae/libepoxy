@@ -125,7 +125,7 @@ class GLFunction(object):
         # args are stored in 64-bit registers, so the calls end up
         # being the same despite the different types.  We just need to
         # add a cast to uintptr_t to shut up the compiler.
-        if arg_type == 'GLhandleARB':
+        if arg_type == 'GLhandleARB' and False:
             assert len(self.args) < 6
             arg_list_name = '(uintptr_t)' + arg_name
         else:
