@@ -180,15 +180,18 @@ target_include_directories(epoxy
         ${LIBEPOXY_SRC_DIR}/src)
 if(EMSCRIPTEN)
 target_sources(epoxy
-    PUBLIC
+    PRIVATE
         ${LIBEPOXY_SRC_DIR}/src/dispatch_emscripten.c
 )
 endif()
 target_sources(epoxy
     PUBLIC
+        ${LIBEPOXY_SRC_DIR}/include/epoxy/gl.h
+)
+target_sources(epoxy
+    PRIVATE
         ${LIBEPOXY_BIN_DIR}/include/epoxy/config.h
         ${LIBEPOXY_SRC_DIR}/include/epoxy/common.h
-        ${LIBEPOXY_SRC_DIR}/include/epoxy/gl.h
         ${LIBEPOXY_BIN_DIR}/include/epoxy/gl_generated.h
         ${LIBEPOXY_SRC_DIR}/src/dispatch_common.h
         ${LIBEPOXY_SRC_DIR}/src/dispatch_common.c
@@ -218,7 +221,7 @@ if(BUILD_EGL)
         COMMENT "Generating `egl_generated_dispatch.c`"
     )
 
-    target_sources(epoxy PUBLIC
+    target_sources(epoxy PRIVATE
         ${LIBEPOXY_SRC_DIR}/include/epoxy/egl.h
         ${LIBEPOXY_BIN_DIR}/include/epoxy/egl_generated.h
         ${LIBEPOXY_SRC_DIR}/src/dispatch_egl.c
@@ -249,7 +252,7 @@ if(BUILD_GLX)
         COMMENT "Generating `glx_generated_dispatch.c`"
     )
 
-target_sources(epoxy PUBLIC
+    target_sources(epoxy PRIVATE
         ${LIBEPOXY_SRC_DIR}/include/epoxy/glx.h
         ${LIBEPOXY_BIN_DIR}/include/epoxy/glx_generated.h
         ${LIBEPOXY_SRC_DIR}/src/dispatch_glx.c
@@ -280,7 +283,7 @@ if(BUILD_WGL)
         COMMENT "Generating `wgl_generated_dispatch.c`"
     )
 
-    target_sources(epoxy PUBLIC
+    target_sources(epoxy PRIVATE
         ${LIBEPOXY_SRC_DIR}/include/epoxy/wgl.h
         ${LIBEPOXY_BIN_DIR}/include/epoxy/wgl_generated.h
         ${LIBEPOXY_SRC_DIR}/src/dispatch_wgl.c
